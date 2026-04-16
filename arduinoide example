@@ -1,0 +1,122 @@
+#include <WiFi.h>
+#include <TerraHttpClient.h>
+#include <ModbusMaster.h>
+
+#define RX_PIN 16
+#define TX_PIN 17
+
+const char *ssid = "iot-ict-lab24g";
+const char *password = "iot#labclass";
+
+const char *serverAddress = "192.168.1.110";
+int port = 3000;
+const char *path = "/data";
+
+const char *DEVICE_TOKEN =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWQiOiJkZXZfZmM5MjU3OTMiLCJwcm9qZWN0X2lkIjoicHJval9jMjk2NzMzNyIsImV4cCI6MTgwNzg3MTc5OSwiaWF0IjoxNzc2MzM1Nzk5fQ.9V_odHTA7Aie_v3An5fu2qK63WL_RyTzZuUmjdZyDsU";
+
+WiFiClient wifi;
+TerraHttpClient http(wifi, serverAddress, port);
+
+ModbusMaster node;
+
+unsigned long lastMsg = 0;
+
+void setup()
+{
+
+    Serial.begin(115200);
+
+    Serial2.begin(4800, SERIAL_8N1, RX_PIN, TX_PIN);
+    node.begin(5, Serial2);
+
+    WiFi.begin(ssid, password);
+
+    Serial.print("Connecting WiFi");
+
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+    }
+
+    Serial.println("\nWiFi connected");
+}
+
+void loop()
+{
+
+    unsigned long now = millis();
+
+    if (now - lastMsg > 5000)
+    {
+
+        lastMsg = now;
+
+        uint8_t result =
+            node.readHoldingRegisters(500, 8);
+
+        if (result == node.ku8MBSuccess)
+        {
+
+            float hum = node.getResponseBuffer(0) / 10.0;
+            float temp = (int16_t)node.getResponseBuffer(1) / 10.0;
+            float noise = node.getResponseBuffer(2) / 10.0;
+            uint16_t pm25 = node.getResponseBuffer(3);
+            uint16_t pm10 = node.getResponseBuffer(4);
+            float press = node.getResponseBuffer(5) / 10.0;
+
+            uint32_t lux =
+                ((uint32_t)node.getResponseBuffer(6) << 16) | node.getResponseBuffer(7);
+
+            // Build JSON
+            String json = "{";
+            json += "\"temperature\": " + String(temp) + ",";
+            json += "\"humidity\": " + String(hum) + ",";
+            json += "\"noise\": " + String(noise) + ",";
+            json += "\"pm25\": " + String(pm25) + ",";
+            json += "\"pm10\": " + String(pm10) + ",";
+            json += "\"pressure\": " + String(press) + ",";
+            json += "\"lux\": " + String(lux);
+            json += "}";
+
+            Serial.println("Sending:");
+            Serial.println(json);
+
+            // Send push request
+            http.beginRequest();
+
+            http.push(path);
+
+            http.sendTitle(
+                "Content-Type",
+                "application/json");
+
+            http.sendTitle(
+                "Authorization",
+                "Bearer " + String(DEVICE_TOKEN));
+
+            http.sendTitle(
+                "Content-Length",
+                json.length());
+
+            http.beginBody();
+            http.print(json);
+            http.endRequest();
+
+            int statusCode = http.responseStatusCode();
+            String response = http.responseBody();
+
+            Serial.print("Status: ");
+            Serial.println(statusCode);
+
+            Serial.print("Response: ");
+            Serial.println(response);
+        }
+        else
+        {
+
+            Serial.println("❌ Modbus read failed");
+        }
+    }
+}
