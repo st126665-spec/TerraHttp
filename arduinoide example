@@ -1,4 +1,5 @@
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <TerraHttpClient.h>
 #include <ModbusMaster.h>
 
@@ -9,13 +10,13 @@ const char *ssid = "iot-ict-lab24g";
 const char *password = "iot#labclass";
 
 const char *serverAddress = "192.168.1.110";
-int port = 3000;
+int port = 443;
 const char *path = "/data";
 
 const char *DEVICE_TOKEN =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWQiOiJkZXZfZmM5MjU3OTMiLCJwcm9qZWN0X2lkIjoicHJval9jMjk2NzMzNyIsImV4cCI6MTgwNzg3MTc5OSwiaWF0IjoxNzc2MzM1Nzk5fQ.9V_odHTA7Aie_v3An5fu2qK63WL_RyTzZuUmjdZyDsU";
 
-WiFiClient wifi;
+WiFiClientSecure wifi;
 TerraHttpClient http(wifi, serverAddress, port);
 
 ModbusMaster node;
@@ -41,6 +42,9 @@ void setup()
     }
 
     Serial.println("\nWiFi connected");
+
+    // Configure SSL for HTTPS (skip certificate verification for self-signed certs)
+    wifi.setInsecure();
 }
 
 void loop()

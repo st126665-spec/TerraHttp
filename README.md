@@ -285,6 +285,52 @@ TerraHttpClient(Client& client, const IPAddress& address, uint16_t port = 80);
 - `HTTP_ERROR_TIMED_OUT` (-3) - Request timeout
 - `HTTP_ERROR_INVALID_RESPONSE` (-4) - Invalid response
 
+## HTTPS Support
+
+TerraHTTP supports HTTPS connections by using secure client implementations. For ESP32 and ESP8266 boards, use `WiFiClientSecure` instead of `WiFiClient`:
+
+```cpp
+#include <WiFiClientSecure.h>
+
+WiFiClientSecure wifi;
+TerraHttpClient client(wifi, "api.example.com", 443);
+
+// For self-signed certificates or testing, skip verification:
+wifi.setInsecure();
+```
+
+For Arduino MKR series with WiFiNINA, use `WiFiSSLClient`:
+
+```cpp
+#include <WiFiNINA.h>
+
+WiFiSSLClient wifi;
+TerraHttpClient client(wifi, "api.example.com", 443);
+```
+
+## WebSocket Support
+
+TerraHTTP includes WebSocket support through the `WebSocketClient` class. For secure WebSocket (WSS) connections, use a secure client:
+
+```cpp
+#include <WiFiClientSecure.h>
+
+WiFiClientSecure wifi;
+WebSocketClient ws(wifi, "api.example.com", 443);
+
+void setup() {
+  // ... WiFi setup ...
+  
+  wifi.setInsecure(); // For self-signed certificates
+  ws.begin("/websocket");
+  
+  // Send a text message
+  ws.beginMessage(TYPE_TEXT);
+  ws.print("Hello WebSocket!");
+  ws.endMessage();
+}
+```
+
 ## Requirements
 
 - Arduino board with WiFi or Ethernet capability

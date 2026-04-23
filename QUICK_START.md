@@ -159,7 +159,40 @@ IPAddress serverIP(192, 168, 1, 100);
 TerraHttpClient client(wifi, serverIP, 8080);
 ```
 
-## � Additional Library Components
+## 🔒 HTTPS Support
+
+For secure HTTPS connections on port 443:
+
+### ESP32 / ESP8266
+```cpp
+#include <WiFiClientSecure.h>
+
+WiFiClientSecure wifi;
+TerraHttpClient client(wifi, "api.example.com", 443);
+
+// For self-signed certificates, skip verification:
+wifi.setInsecure();
+```
+
+### Arduino MKR (WiFiNINA)
+```cpp
+#include <WiFiNINA.h>
+
+WiFiSSLClient wifi;
+TerraHttpClient client(wifi, "api.example.com", 443);
+```
+
+### WebSocket Secure (WSS)
+```cpp
+#include <WiFiClientSecure.h>
+
+WiFiClientSecure wifi;
+WebSocketClient ws(wifi, "websocket.example.com", 443);
+wifi.setInsecure();
+ws.begin("/ws");
+```
+
+## 📡 Additional Library Components
 
 TerraHTTP includes all the important components from ArduinoHttpClient:
 
